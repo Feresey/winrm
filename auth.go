@@ -1,24 +1,25 @@
 package winrm
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"strings"
 	"time"
+
+	"launchpad.net/gwacl/fork/http"
+	"launchpad.net/gwacl/fork/tls"
 
 	"github.com/masterzen/winrm/soap"
 )
 
-//ClientAuthRequest ClientAuthRequest
+// ClientAuthRequest ClientAuthRequest
 type ClientAuthRequest struct {
 	transport http.RoundTripper
 	dial      func(network, addr string) (net.Conn, error)
 }
 
-//Transport Transport
+// Transport Transport
 func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
 	cert, err := tls.X509KeyPair(endpoint.Cert, endpoint.Key)
 	if err != nil {
@@ -38,12 +39,14 @@ func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
-			Renegotiation:      tls.RenegotiateOnceAsClient,
+			// FIXME incompatible api
+			// Renegotiation:      tls.RenegotiateOnceAsClient,
 			InsecureSkipVerify: endpoint.Insecure,
 			Certificates:       []tls.Certificate{cert},
 		},
-		Dial:                  dial,
-		ResponseHeaderTimeout: endpoint.Timeout,
+		Dial: dial,
+		// FIXME incompatible api
+		// ResponseHeaderTimeout: endpoint.Timeout,
 	}
 
 	if endpoint.CACert != nil && len(endpoint.CACert) > 0 {
@@ -82,7 +85,7 @@ func parse(response *http.Response) (string, error) {
 	return "", fmt.Errorf("invalid content type")
 }
 
-//Post Post
+// Post Post
 func (c ClientAuthRequest) Post(client *Client, request *soap.SoapMessage) (string, error) {
 	httpClient := &http.Client{Transport: c.transport}
 
@@ -115,7 +118,7 @@ func (c ClientAuthRequest) Post(client *Client, request *soap.SoapMessage) (stri
 	return body, err
 }
 
-//NewClientAuthRequestWithDial NewClientAuthRequestWithDial
+// NewClientAuthRequestWithDial NewClientAuthRequestWithDial
 func NewClientAuthRequestWithDial(dial func(network, addr string) (net.Conn, error)) *ClientAuthRequest {
 	return &ClientAuthRequest{
 		dial: dial,
